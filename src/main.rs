@@ -1,34 +1,12 @@
-#[macro_use]
-extern crate nameof;
+mod config;
+
 use anyhow::Result;
-use clap::{App, Arg, ArgMatches};
-use std::io::prelude::*;
+use clap::{App, Arg};
+use config::ServerConfig;
+use nameof::name_of;
 use std::net::TcpListener;
-use std::num::ParseIntError;
-use std::{convert::TryFrom, net::TcpStream};
-
-#[derive(Debug)]
-struct ServerConfig {
-    address: String,
-    port: u16,
-}
-
-impl<'a> TryFrom<ArgMatches<'a>> for ServerConfig {
-    fn try_from(arg_matches: ArgMatches<'a>) -> Result<Self, Self::Error> {
-        Ok(ServerConfig {
-            address: arg_matches
-                .value_of(name_of!(address in ServerConfig))
-                .expect("should have defaulted if not provided")
-                .to_owned(),
-            port: arg_matches
-                .value_of(name_of!(port in ServerConfig))
-                .expect("should have defaulted if not provided")
-                .parse()?,
-        })
-    }
-
-    type Error = ParseIntError;
-}
+use std::net::TcpStream;
+use std::{convert::TryFrom, io::prelude::*};
 
 pub fn main() -> Result<()> {
     env_logger::init();
