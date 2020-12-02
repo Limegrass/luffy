@@ -55,7 +55,6 @@ pub struct Repository {
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct Response {
-    pub secret: String,
     pub r#ref: String,
     pub before: String,      // commit hash
     pub after: String,       // commit hash
