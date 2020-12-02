@@ -1,14 +1,37 @@
 mod config;
 
-use anyhow::Result;
+use actix_web::{error::ResponseError, middleware, web, App as ServerApp, HttpRequest, HttpServer};
 use clap::{App, Arg};
 use config::ServerConfig;
 use nameof::name_of;
-use std::net::TcpListener;
-use std::net::TcpStream;
-use std::{convert::TryFrom, io::prelude::*};
+use std::fmt::Display;
 
-pub fn main() -> Result<()> {
+async fn index(req: HttpRequest) -> &'static str {
+    println!("REQ: {:?}", req);
+    "Hello world!"
+}
+
+#[derive(Debug)]
+struct Error {
+    error: anyhow::Error,
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
+impl ResponseError for Error {}
+
+impl From<anyhow::Error> for Error {
+    fn from(error: anyhow::Error) -> Error {
+        Error { error }
+    }
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
     env_logger::init();
     let arg_matches = App::new("Trello Git Webhook")
         .version("0.1.0")
@@ -33,25 +56,16 @@ pub fn main() -> Result<()> {
                 .default_value("9669"), // TODO: limited range
         )
         .get_matches();
-    let config = ServerConfig::try_from(arg_matches)?;
+    let config = ServerConfig::from(arg_matches);
 
-    let bind_address = format!("{}:{}", config.address, config.port);
-    let listener = TcpListener::bind(bind_address)?;
-    for stream in listener.incoming() {
-        let stream = stream?;
-        log::info!("Connection established: {:?}", stream);
-        handle_connection(stream)?;
-    }
-    Ok(())
-}
-
-fn handle_connection(mut stream: TcpStream) -> Result<()> {
-    let mut buffer = [0; 1024];
-    stream.read(&mut buffer)?;
-    log::info!("{}", String::from_utf8_lossy(&buffer));
-
-    let response = "HTTP/1.1 200 OK\r\n\r\n";
-    stream.write(response.as_bytes())?;
-    stream.flush()?;
-    Ok(())
+    HttpServer::new(|| {
+        ServerApp::new()
+            // enable logger
+            .wrap(middleware::Logger::default())
+            .service(web::resource("/index.html").to(|| async { "Hello world!" }))
+            .service(web::resource("/").to(index))
+    })
+    .bind(format!("{}:{}", config.address, config.port))?
+    .run()
+    .await
 }
