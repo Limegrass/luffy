@@ -2,10 +2,10 @@
 extern crate nameof;
 use anyhow::Result;
 use clap::{App, Arg, ArgMatches};
-use log;
-use std::convert::TryFrom;
+use std::io::prelude::*;
 use std::net::TcpListener;
 use std::num::ParseIntError;
+use std::{convert::TryFrom, net::TcpStream};
 
 #[derive(Debug)]
 struct ServerConfig {
@@ -61,7 +61,19 @@ pub fn main() -> Result<()> {
     let listener = TcpListener::bind(bind_address)?;
     for stream in listener.incoming() {
         let stream = stream?;
-        log::info!("Connection established: {:?}", stream)
+        log::info!("Connection established: {:?}", stream);
+        handle_connection(stream)?;
     }
+    Ok(())
+}
+
+fn handle_connection(mut stream: TcpStream) -> Result<()> {
+    let mut buffer = [0; 1024];
+    stream.read(&mut buffer)?;
+    log::info!("{}", String::from_utf8_lossy(&buffer));
+
+    let response = "HTTP/1.1 200 OK\r\n\r\n";
+    stream.write(response.as_bytes())?;
+    stream.flush()?;
     Ok(())
 }
