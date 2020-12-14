@@ -54,7 +54,7 @@ pub struct Repository {
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
-pub struct Response {
+pub struct PushEvent {
     pub r#ref: String,
     pub before: String,      // commit hash
     pub after: String,       // commit hash

@@ -4,6 +4,7 @@ use clap::{App, Arg};
 use config::ServerConfig;
 use log::*;
 use nameof::name_of;
+use trello_git_webhook::gitea::PushEvent;
 use warp::Filter;
 
 #[tokio::main]
@@ -39,6 +40,10 @@ async fn main() {
     let host = warp::host::exact(&format!("localhost:{}", config.addr.port()))
         .or(warp::host::exact(&config.allowed_host));
 
-    let root = host.map(|_| "Hello world!");
-    warp::serve(root).run(config.addr).await;
+    let tro = host
+        .and(warp::post())
+        .and(warp::path("trello"))
+        .and(warp::body::json())
+        .map(|_, push_event: PushEvent| warp::reply::json(&push_event));
+    warp::serve(tro).run(config.addr).await;
 }
