@@ -2,6 +2,7 @@ mod config;
 
 use clap::{App, Arg};
 use config::ServerConfig;
+use log::*;
 use nameof::name_of;
 use warp::Filter;
 
@@ -22,7 +23,10 @@ async fn main() {
                 .default_value("127.0.0.1:9669"),
         )
         .get_matches();
+    info!("{:?}", arg_matches);
+
     let config = ServerConfig::from(arg_matches);
+    info!("{:?}", config);
 
     let root = warp::any().map(|| "Hello world!");
     warp::serve(root).run(config.addr).await;
