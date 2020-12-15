@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 // use chrono::DateTime if I'm doing more than just forwarding
 type DateTimeType = String; // "2017-03-13T13:52:11-04:00"
@@ -63,4 +64,28 @@ pub struct PushEvent {
     pub repository: Repository,
     pub pusher: GiteaUser,
     pub sender: GiteaUser,
+}
+
+// Support only Gitea for the time being.
+// Would have to reconcile differences in event payloads otherwise
+pub const PUSH_EVENT_HEADER_NAME: &'static str = "X-Gitea-Event";
+
+#[derive(Debug)]
+pub enum GitEvent {
+    Push,
+    PullRequest,
+    IssueComment,
+}
+
+impl FromStr for GitEvent {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "push" => Ok(GitEvent::Push),
+            "pull_request" => Ok(GitEvent::PullRequest),
+            "issue_comment" => Ok(GitEvent::IssueComment),
+            _ => Err("unrecognized git event"),
+        }
+    }
 }
