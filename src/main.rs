@@ -24,26 +24,35 @@ async fn main() {
                 .default_value("127.0.0.1:9669"),
         )
         .arg(
-            Arg::with_name(name_of!(allowed_host in ServerConfig))
+            Arg::with_name(name_of!(allowed_hosts in ServerConfig))
                 .short("h")
                 .long("allowed_hosts")
                 .value_name("ALLOWED_HOSTS")
                 .help("host names allowed to send requests")
                 .takes_value(true)
-                .default_value(r#"127.0.0.1:9669"#),
+                .default_value(r#"["localhost:9669"]"#),
         )
         .get_matches();
     info!("{:?}", arg_matches);
 
     let config = ServerConfig::from(arg_matches);
     info!("{:?}", config);
-    let host = warp::host::exact(&format!("localhost:{}", config.addr.port()))
-        .or(warp::host::exact(&config.allowed_host));
 
-    let tro = host
+    let warp_hosts = config.allowed_hosts.iter().fold(
+        // always allow the loopback to connect.
+        warp::host::exact(&format!("127.0.0.1:{}", config.addr.port())).boxed(),
+        |allowed_hosts, hostname| {
+            allowed_hosts
+                .or(warp::host::exact(hostname))
+                .unify()
+                .boxed()
+        },
+    );
+
+    let tro = warp_hosts
         .and(warp::post())
         .and(warp::path("trello"))
         .and(warp::body::json())
-        .map(|_, push_event: PushEvent| warp::reply::json(&push_event));
+        .map(|push_event: PushEvent| warp::reply::json(&push_event));
     warp::serve(tro).run(config.addr).await;
 }

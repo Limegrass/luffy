@@ -6,7 +6,7 @@ use std::net::SocketAddr;
 #[derive(Debug)]
 pub(crate) struct ServerConfig {
     pub addr: SocketAddr,
-    pub allowed_host: String,
+    pub allowed_hosts: Vec<String>,
 }
 
 impl<'a> From<ArgMatches<'a>> for ServerConfig {
@@ -20,14 +20,15 @@ impl<'a> From<ArgMatches<'a>> for ServerConfig {
             .parse()
             .expect("must be a valid socket addr. eg: 127.0.0.1:8080");
 
-        let allowed_host = arg_matches
-            .value_of(name_of!(allowed_host in ServerConfig))
+        let allowed_hosts = arg_matches
+            .value_of(name_of!(allowed_hosts in ServerConfig))
             .expect("should have defaulted if not provided");
-        info!("{:?}", allowed_host);
+        info!("{:?}", allowed_hosts);
+        let allowed_hosts = serde_json::from_str(allowed_hosts).expect("not a JSON array of hosts");
 
         ServerConfig {
             addr,
-            allowed_host: allowed_host.to_owned(),
+            allowed_hosts,
         }
     }
 }
