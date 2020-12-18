@@ -1,13 +1,12 @@
-use serde_json;
+use gitea_hook_event::{Commit, GitUser, GiteaUser, PushEvent, Repository};
 use std::fs;
-use trello_git_webhook::gitea::*;
 
 #[test]
 fn serde_derive_correctly_deserializes() {
     let data = fs::read_to_string("tests/gitea/sample_response.json").expect("Unable to read file");
-    let parsed: Response = serde_json::from_str(&data).expect("Malformed JSON");
-    let expected = Response {
-        r#ref: "refs/heads/develop".to_string(),
+    let parsed: PushEvent = serde_json::from_str(&data).expect("Malformed JSON");
+    let expected = PushEvent {
+        ref_path: "refs/heads/develop".to_string(),
         before: "28e1879d029cb852e4844d9c718537df08844e03".to_string(),
         after: "bffeb74224043ba2feb48d137756c8a9331c449a".to_string(),
         compare_url: "http://localhost:3000/gitea/webhooks/compare/28e1879d029cb852e4844d9c718537df08844e03...bffeb74224043ba2feb48d137756c8a9331c449a".to_string(),

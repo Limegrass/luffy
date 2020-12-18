@@ -57,7 +57,8 @@ pub struct Repository {
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct PushEvent {
-    pub r#ref: String,
+    #[serde(rename = "ref")]
+    pub ref_path: String,
     pub before: String,      // commit hash
     pub after: String,       // commit hash
     pub compare_url: String, // url with diff?
@@ -138,11 +139,15 @@ pub enum HookEvent {
 pub struct Gitea;
 
 impl Service<HookEvent, String> for Gitea {
-    fn event_header_name() -> &'static str {
+    fn event_header_name(&self) -> &'static str {
         "X-Gitea-Event"
     }
 
-    fn parse_hook_event(hook_event_type: &str, hook_event_body: &str) -> Result<HookEvent, String> {
+    fn parse_hook_event(
+        &self,
+        hook_event_type: &str,
+        hook_event_body: &str,
+    ) -> Result<HookEvent, String> {
         match hook_event_type {
             "create" => Ok(HookEvent::Create(CreateEvent)),
             "delete" => Ok(HookEvent::Delete(DeleteEvent)),
