@@ -1,11 +1,12 @@
 mod config;
-mod service;
 
 use clap::{App, Arg};
 use config::ServerConfig;
 use log::*;
+use luffy::cli_handler::CliHandler;
+use luffy::core::{Handler, Service};
+use luffy::gitea::Gitea;
 use nameof::name_of;
-use trello_git_webhook::gitea::{Gitea, HookEvent};
 use warp::{hyper::body::Bytes, Buf, Filter};
 
 #[tokio::main]
@@ -52,8 +53,8 @@ async fn main() {
         },
     );
 
-    let event_header_name =
-        <Gitea as trello_git_webhook::service::Service<HookEvent, String>>::event_header_name();
+    let gitea = Gitea;
+    let event_header_name = gitea.event_header_name();
     let event_filter = warp::header(event_header_name);
 
     // TODO: Decide on how to map commits to trello board updates
@@ -69,19 +70,25 @@ async fn main() {
         .and(warp::path("trello"))
         .and(event_filter)
         .and(warp::body::bytes())
-        .map(|hook_event_name: String, hook_event_body: Bytes| {
-            info!("{}", hook_event_name);
-            let mut cards = std::process::Command::new("tro");
-            cards.arg("show");
-            info!("{:?}", cards.output());
-            let body =
-                String::from_utf8(hook_event_body.bytes().iter().map(|b| b.clone()).collect())
-                    .expect("fuck it i'll fix it later");
-            let event = <Gitea as trello_git_webhook::service::Service<
-                        HookEvent,
-                        String,
-                    >>::parse_hook_event(&hook_event_name, &body).expect("fuck it i'll fix it later");
-            warp::reply::json(&event)
-        });
+        .and_then(handle_event_async);
     warp::serve(tro).run(config.addr).await;
+}
+
+async fn handle_event_async(
+    hook_event_name: String,
+    hook_event_body: Bytes,
+) -> Result<warp::reply::Json, warp::Rejection> {
+    info!("{}", hook_event_name);
+    let mut cards = std::process::Command::new("tro");
+    cards.arg("show");
+    info!("{:?}", cards.output());
+    let body = String::from_utf8(hook_event_body.bytes().iter().map(|b| b.clone()).collect())
+        .expect("fuck it i'll fix it later");
+    let gitea = Gitea;
+    let event = gitea
+        .parse_hook_event(&hook_event_name, &body)
+        .expect("fuck it i'll fix it later");
+    let process_handler = CliHandler;
+    process_handler.handle_event(&event).await;
+    Ok(warp::reply::json(&event))
 }

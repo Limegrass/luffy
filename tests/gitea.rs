@@ -1,4 +1,4 @@
-use gitea_hook_event::{Commit, GitUser, GiteaUser, PushEvent, Repository};
+use luffy::gitea::{Commit, GitUser, GiteaUser, PushEvent, Repository};
 use std::fs;
 
 #[test]

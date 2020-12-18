@@ -1,5 +1,5 @@
 [package]
-name = "trello_git_webhook"
+name = "luffy"
 version = "0.1.0"
 authors = ["James Ni"]
 edition = "2018"
@@ -17,3 +17,4 @@ clap = "2.33.3"
 nameof = "1.2.1"
 warp = "0.2.5"
 tokio = { version = "0.2", features = ["full"] }
+async-trait = "0.1.42"

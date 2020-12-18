@@ -1,4 +1,4 @@
-use crate::service::Service;
+use crate::core::Service;
 use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
 
