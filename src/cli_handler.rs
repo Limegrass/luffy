@@ -1,5 +1,5 @@
 use crate::core::Handler;
-use crate::gitea::{HookEvent, PushEvent};
+use crate::gitea::payloads::{HookEvent, PushPayload};
 use async_trait::async_trait;
 use log::*;
 use tokio::process::Command;
@@ -16,7 +16,7 @@ impl Handler<HookEvent> for CliHandler {
     }
 }
 
-async fn handle_push_event(push_event: &PushEvent) {
+async fn handle_push_event(push_event: &PushPayload) {
     // loop through the commits and check message
     let mut command = Command::new("echoer");
     // TODO: Read configuration at runtime to determine what to do
@@ -71,12 +71,12 @@ async fn handle_push_event(push_event: &PushEvent) {
         &push_event.repository.description,
     );
     command.env(
-        "PUSH_REPOSITORY_PRIVATE",
-        push_event.repository.private.to_string(),
+        "PUSH_REPOSITORY_IS_PRIVATE",
+        push_event.repository.is_private.to_string(),
     );
     command.env(
-        "PUSH_REPOSITORY_FORK",
-        push_event.repository.fork.to_string(),
+        "PUSH_REPOSITORY_IS_FORK",
+        push_event.repository.is_fork.to_string(),
     );
     command.env("PUSH_REPOSITORY_HTML_URL", &push_event.repository.html_url);
     command.env("PUSH_REPOSITORY_SSH_URL", &push_event.repository.ssh_url);
