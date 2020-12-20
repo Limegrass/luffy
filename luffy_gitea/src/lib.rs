@@ -4,10 +4,24 @@ pub mod structs;
 
 use luffy_core::Service;
 use payloads::*;
+use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 
 // TODO: Deserves proper Error enum later.
 pub type JsonParseError = String;
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum HookEvent {
+    Create(CreatePayload),
+    Delete(DeletePayload),
+    Fork(ForkPayload),
+    Issues(IssuePayload),
+    IssueComment(IssueCommentPayload),
+    Push(PushPayload),
+    PullRequest(PullRequestPayload),
+    Repository(RepositoryPayload),
+    Release(ReleasePayload),
+}
 
 pub struct GiteaService;
 impl Service<HookEvent, String> for GiteaService {

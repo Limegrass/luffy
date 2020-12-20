@@ -5,10 +5,7 @@ use clap::{App, Arg};
 use config::ServerConfig;
 use log::*;
 use luffy_core::{Handler, Service};
-use luffy_gitea::{
-    payloads::{HookEvent, PushPayload},
-    GiteaService,
-};
+use luffy_gitea::{payloads::PushPayload, GiteaService, HookEvent};
 use nameof::name_of;
 use tokio::process::Command;
 use warp::{hyper::body::Bytes, Buf, Filter};

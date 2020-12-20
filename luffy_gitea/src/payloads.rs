@@ -29,7 +29,7 @@ pub struct CreatePayload {
 impl_serde_deserialize!(CreatePayload);
 
 // They're the same fields. Redefine?
-type DeletePayload = CreatePayload;
+pub type DeletePayload = CreatePayload;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ForkPayload {
@@ -106,16 +106,3 @@ pub struct ReleasePayload {
     pub sender: GiteaUser,
 }
 impl_serde_deserialize!(ReleasePayload);
-
-#[derive(Debug, Deserialize, Serialize)]
-pub enum HookEvent {
-    Create(CreatePayload),
-    Delete(DeletePayload),
-    Fork(ForkPayload),
-    Issues(IssuePayload),
-    IssueComment(IssueCommentPayload),
-    Push(PushPayload),
-    PullRequest(PullRequestPayload),
-    Repository(RepositoryPayload),
-    Release(ReleasePayload),
-}
