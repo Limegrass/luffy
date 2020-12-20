@@ -18,3 +18,5 @@ nameof = "1.2.1"
 warp = "0.2.5"
 tokio = { version = "0.2", features = ["full"] }
 async-trait = "0.1.42"
+luffy_core = { version = "0.1.0", path = "./luffy_core" }
+luffy_gitea = { version = "0.1.0", path = "./luffy_gitea" }

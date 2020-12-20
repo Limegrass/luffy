@@ -1,4 +1,5 @@
-use crate::gitea::structs::*;
+// https://github.com/go-gitea/gitea/blob/master/modules/notification/webhook/webhook.go
+use crate::structs::*;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 

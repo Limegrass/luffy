@@ -1,0 +1,8 @@
+[package]
+name = "luffy_core"
+version = "0.1.0"
+authors = ["Limegrass <james@niis.me>"]
+edition = "2018"
+
+[dependencies]
+async-trait = "0.1.42"

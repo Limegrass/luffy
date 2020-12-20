@@ -1,14 +1,16 @@
 // https://github.com/go-gitea/gitea/blob/master/modules/notification/webhook/webhook.go
-
 pub mod payloads;
 pub mod structs;
 
-use crate::core::Service;
-use payloads::{HookEvent, JsonParseError};
+use luffy_core::Service;
+use payloads::*;
 use std::convert::TryInto;
 
-pub struct Gitea;
-impl Service<HookEvent, String> for Gitea {
+// TODO: Deserves proper Error enum later.
+pub type JsonParseError = String;
+
+pub struct GiteaService;
+impl Service<HookEvent, String> for GiteaService {
     fn event_header_name(&self) -> &'static str {
         "X-Gitea-Event"
     }
