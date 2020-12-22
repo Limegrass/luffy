@@ -156,6 +156,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "cli_handler"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "log",
+ "luffy_core",
+ "luffy_gitea",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "cloudabi"
 version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -552,6 +564,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "clap",
+ "cli_handler",
  "env_logger",
  "log",
  "luffy_core",
@@ -1139,9 +1152,9 @@ checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 
 [[package]]
 name = "syn"
-version = "1.0.51"
+version = "1.0.55"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b4f34193997d92804d359ed09953e25d5138df6bcc055a71bf68ee89fdf9223"
+checksum = "a571a711dddd09019ccc628e1b17fe87c59b09d513c06c026877aa708334f37a"
 dependencies = [
  "proc-macro2",
  "quote",
