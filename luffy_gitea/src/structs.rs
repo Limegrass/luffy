@@ -67,7 +67,7 @@ pub struct Repository {
     pub is_fork: bool,
     #[serde(rename = "template")]
     pub is_template: bool,
-    // pub parent: Option<???>, TODO
+    pub parent: Option<Box<Repository>>,
     #[serde(rename = "mirror")]
     pub is_mirror: bool,
     #[serde(rename = "size")]
@@ -81,19 +81,23 @@ pub struct Repository {
     pub forks_count: i32,
     pub watchers_count: i32,
     pub open_issues_count: i32,
-    pub open_pr_count: i32,
+    pub open_pr_counter: i32,
     pub release_counter: i32,
     pub default_branch: String,
     #[serde(rename = "archived")]
     pub is_archived: bool,
     pub created_at: DateTimeType,
     pub updated_at: DateTimeType,
-    pub permissions: Permissions,
+    #[serde(default)]
+    pub permissions: Option<Permissions>,
     pub has_issues: bool,
-    pub internal_tracker: InternalTracker,
-    pub external_tracker: ExternalTracker,
+    #[serde(default)]
+    pub internal_tracker: Option<InternalTracker>,
+    #[serde(default)]
+    pub external_tracker: Option<ExternalTracker>,
     pub has_wiki: bool,
-    pub external_wiki: ExternalWiki,
+    #[serde(default)]
+    pub external_wiki: Option<ExternalWiki>,
     pub has_pull_requests: bool,
     pub has_projects: bool,
     #[serde(rename = "ignore_whitespace_conflicts")]
@@ -120,18 +124,19 @@ pub struct InternalTracker {
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct ExternalTracker {
-    external_tracker_url: String,
+    pub external_tracker_url: String,
     // External Issue Tracker URL Format.
     // Use the placeholders {user},
     // {repo} and {index} for the username,
     // repository name and issue index.
-    external_tracker_format: String,
-    external_tracker_style: String, // `numeric` or `alphanumeric`
+    pub external_tracker_format: String,
+    pub external_tracker_style: String, // `numeric` or `alphanumeric`
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct ExternalWiki {
-    pub external_wiki_url: String,
+    #[serde(rename = "external_wiki_url")]
+    pub url: String,
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
@@ -162,13 +167,16 @@ pub struct Issue {
     pub assignees: Vec<GiteaUser>,
     pub state: String, // "open", "closed", "all"
     pub is_locked: bool,
-    pub comments: i32,
+    #[serde(rename = "comments")]
+    pub comment_count: i32,
     pub created_at: DateTimeType,
     pub updated_at: DateTimeType, // updated = created on open?
     pub closed_at: Option<DateTimeType>,
     pub due_date: Option<DateTimeType>,
-    pub pull_request: Option<PullRequestMeta>,
-    pub repository: Option<RepositoryMeta>,
+    #[serde(rename = "pull_request")]
+    pub pull_request_meta: Option<PullRequestMeta>,
+    #[serde(rename = "repository")]
+    pub repository_meta: Option<RepositoryMeta>,
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
@@ -204,12 +212,15 @@ pub struct Comment {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Changes {
+    #[serde(default)]
     pub title: Option<ChangesFromPayload>,
+    #[serde(default)]
     pub body: Option<ChangesFromPayload>,
-    #[serde(rename = "ref")]
+    #[serde(default, rename = "ref")]
     pub ref_path: Option<ChangesFromPayload>,
 }
 
+// TODO: Maybe get rid of this mirroring
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ChangesFromPayload {
     pub from: String,
@@ -256,13 +267,14 @@ pub struct PullRequest {
     pub user: GiteaUser,
     pub title: String,
     pub body: String,
-    // labels: Vec<Label>
+    // TODO: labels: Vec<Label>
     pub milestone: Option<Milestone>,
     pub assignee: Option<GiteaUser>,
     pub assignees: Vec<GiteaUser>,
     pub state: String, // StateType
     pub is_locked: bool,
-    pub comments: i32,
+    #[serde(rename = "comments")]
+    pub comment_count: i32,
     pub html_url: String,
     pub diff_url: String,
     pub patch_url: String,
@@ -289,5 +301,6 @@ pub struct PRBranchInfo {
     pub ref_path: String,
     pub sha: String,
     pub repo_id: i64,
-    pub repo: Repository,
+    #[serde(rename = "repo")]
+    pub repository: Repository,
 }

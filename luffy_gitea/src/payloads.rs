@@ -1,4 +1,4 @@
-// https://github.com/go-gitea/gitea/blob/master/modules/notification/webhook/webhook.go
+// https://github.com/go-gitea/gitea/blob/master/modules/structs/hook.go
 use crate::structs::*;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
@@ -19,22 +19,35 @@ macro_rules! impl_serde_deserialize {
     };
 }
 
+// TODO: Action types as enums (with display and debug)
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CreatePayload {
-    pub action: String, // HookRepoAction: "created" or "deleted"
+    pub sha: String,
+    #[serde(rename = "ref")]
+    pub ref_path: String,
+    pub ref_type: String,
     pub repository: Repository,
-    pub organization: Organization,
     pub sender: GiteaUser,
 }
 impl_serde_deserialize!(CreatePayload);
 
-// They're the same fields. Redefine?
-pub type DeletePayload = CreatePayload;
+#[derive(Debug, Deserialize, Serialize)]
+pub struct DeletePayload {
+    #[serde(rename = "ref")]
+    pub ref_path: String,
+    pub ref_type: String,
+    pub pusher_type: String, // PusherType: "user"
+    pub repository: Repository,
+    pub sender: GiteaUser,
+}
+impl_serde_deserialize!(DeletePayload);
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ForkPayload {
     pub forkee: Repository,
-    pub repo: Repository,
+    #[serde(rename = "repo")]
+    pub repository: Repository,
     pub sender: GiteaUser,
 }
 impl_serde_deserialize!(ForkPayload);
@@ -43,6 +56,7 @@ impl_serde_deserialize!(ForkPayload);
 pub struct IssuePayload {
     pub number: i64,
     pub action: String, // HookIssueAction: "opened", ...
+    #[serde(default)]
     pub changes: Option<Changes>,
     pub issue: Issue,
     pub repository: Repository,
@@ -55,6 +69,7 @@ pub struct IssueCommentPayload {
     pub action: String, // HookIssueCommentAction: "created", ...
     pub issue: Issue,
     pub comment: Comment,
+    #[serde(default)]
     pub changes: Option<Changes>,
     pub repository: Repository,
     pub sender: GiteaUser,
@@ -66,11 +81,11 @@ impl_serde_deserialize!(IssueCommentPayload);
 pub struct PushPayload {
     #[serde(rename = "ref")]
     pub ref_path: String,
-    pub before: String,      // commit hash
-    pub after: String,       // commit hash
-    pub compare_url: String, // url with diff?
+    pub before: String, // commit hash
+    pub after: String,  // commit hash
+    pub compare_url: String,
     pub commits: Vec<Commit>,
-    pub head_commit: Commit,
+    pub head_commit: Option<Commit>,
     pub repository: Repository,
     pub pusher: GiteaUser,
     pub sender: GiteaUser,
@@ -82,7 +97,7 @@ pub struct PullRequestPayload {
     pub action: String, // HookIssueAction
     pub number: i64,
     pub changes: Option<Changes>,
-    // pub pull_request *PullRequest    `json:"pull_request"`
+    pub pull_request: PullRequest,
     pub repository: Repository,
     pub sender: GiteaUser,
     // pub review : ReviewPayload // looks to be wip
