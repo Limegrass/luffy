@@ -15,7 +15,7 @@ async fn main() {
     let arg_matches = App::new("Trello Git Webhook")
         .version("0.1.0")
         .author("James N. <james@niis.me>")
-        .about("Updates Trello on git push")
+        .about("General purpose webhook")
         .arg(
             Arg::with_name(name_of!(addr in ServerConfig))
                 .short("a")
