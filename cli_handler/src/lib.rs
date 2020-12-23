@@ -2,32 +2,58 @@ use async_trait::async_trait;
 use log::*;
 use luffy_core::Handler;
 use luffy_gitea::{payloads::*, structs::*, HookEvent};
+use serde::Deserialize;
+use std::fs::read_to_string;
 use std::process::Command;
 
-pub struct GiteaCliHandler;
+// TODO: allow yaml, toml
+// TODO: allow inlined commands in cfg
+pub struct GiteaCliHandler {
+    config_path: String,
+}
+
+impl GiteaCliHandler {
+    pub fn new(config_path: &str) -> GiteaCliHandler {
+        GiteaCliHandler {
+            config_path: config_path.to_owned(),
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct Config {
+    create: String,
+    delete: String,
+    fork: String,
+    issues: String,
+    issue_comment: String,
+    push: String,
+    pull_request: String,
+    repository: String,
+    release: String,
+}
+
 // TODO: Make the custom derive, if it's possible
 // (but it's fucking impossible)
 #[async_trait]
 impl Handler<HookEvent> for GiteaCliHandler {
     async fn handle_event(&self, event: &HookEvent) {
-        // TODO: The command should be created inside each "handle"
-        // TODO: Pass config path to read value on invocation.
         // TODO: Maybe get rid of the event type prefixing in the "handle"
-        // TODO: Consistent & and as_str
-        let mut command = Command::new("echoer");
-        match event {
-            HookEvent::Create(payload) => handle_create_payload(&mut command, payload),
-            HookEvent::Delete(payload) => handle_delete_payload(&mut command, payload),
-            HookEvent::Fork(payload) => handle_fork_payload(&mut command, payload),
-            HookEvent::Issues(payload) => handle_issue_payload(&mut command, payload),
-            HookEvent::IssueComment(payload) => handle_issue_comment_payload(&mut command, payload),
-            HookEvent::PullRequest(payload) => handle_pull_request_payload(&mut command, payload),
-            HookEvent::Push(payload) => handle_push_payload(&mut command, payload),
-            HookEvent::Repository(payload) => handle_repo_payload(&mut command, payload),
-            HookEvent::Release(payload) => handle_release_payload(&mut command, payload),
-        }
-        let output = command.output();
-        info!("{:#?}", output);
+        let config_string = read_to_string(&self.config_path).expect("TODO: return Err");
+        let config = serde_json::from_str(&config_string).expect("but really though");
+
+        let mut command = match event {
+            HookEvent::Create(payload) => get_create_command(&config, payload),
+            HookEvent::Delete(payload) => get_delete_command(&config, payload),
+            HookEvent::Fork(payload) => get_fork_command(&config, payload),
+            HookEvent::Issues(payload) => get_issue_command(&config, payload),
+            HookEvent::IssueComment(payload) => get_issue_comment_command(&config, payload),
+            HookEvent::PullRequest(payload) => get_pull_request_command(&config, payload),
+            HookEvent::Push(payload) => get_push_command(&config, payload),
+            HookEvent::Repository(payload) => get_repo_command(&config, payload),
+            HookEvent::Release(payload) => get_release_command(&config, payload),
+        };
+        info!("{:#?}", command.output());
     }
 }
 
@@ -289,62 +315,69 @@ fn add_git_user_env(command: &mut Command, prefix: &str, git_user: &GitUser) {
     command.env(&format!("{}_USERNAME", prefix), git_user.username.as_str());
 }
 
-fn handle_push_payload(command: &mut Command, push_event: &PushPayload) {
+fn get_push_command(config: &Config, push_event: &PushPayload) -> Command {
+    let mut command = Command::new(&config.push);
     // TODO: Read configuration at runtime to determine what to do
     command.env("PUSH_REF_PATH", &push_event.ref_path);
     command.env("PUSH_BEFORE", &push_event.before);
     command.env("PUSH_AFTER", &push_event.after);
     command.env("PUSH_COMPARE_URL", &push_event.compare_url);
-    add_repository_env(command, "PUSH_REPOSITORY", &push_event.repository);
-    add_user_env(command, "PUSH_PUSHER", &push_event.pusher);
-    add_user_env(command, "PUSH_SENDER", &push_event.sender);
+    add_repository_env(&mut command, "PUSH_REPOSITORY", &push_event.repository);
+    add_user_env(&mut command, "PUSH_PUSHER", &push_event.pusher);
+    add_user_env(&mut command, "PUSH_SENDER", &push_event.sender);
     if let Some(commit) = &push_event.head_commit {
-        add_commit_env(command, "PUSH_HEAD_COMMIT", commit);
+        add_commit_env(&mut command, "PUSH_HEAD_COMMIT", commit);
     }
     for (i, commit) in push_event.commits.iter().enumerate() {
-        add_commit_env(command, &format!("PUSH_COMMIT_{}", i), commit);
+        add_commit_env(&mut command, &format!("PUSH_COMMIT_{}", i), commit);
     }
+    command
 }
 
-fn handle_repo_payload(command: &mut Command, repo_payload: &RepositoryPayload) {
+fn get_repo_command(config: &Config, repo_payload: &RepositoryPayload) -> Command {
+    let mut command = Command::new(&config.repository);
     // TODO: Read configuration at runtime to determine what to do
     command.env("REPOSITORY_ACTION", &repo_payload.action);
     // can be CREATE_X or DELETE_X
     add_repository_env(
-        command,
+        &mut command,
         // TODO: Just use REPOSITORY_X ?
         &format!("{}_REPOSITORY", repo_payload.action.to_uppercase()),
         &repo_payload.repository,
     );
     add_user_env(
-        command,
+        &mut command,
         &format!("{}_ORGANIZATION", repo_payload.action.to_uppercase()),
         &repo_payload.organization,
     );
     add_user_env(
-        command,
+        &mut command,
         &format!("{}_SENDER", repo_payload.action.to_uppercase()),
         &repo_payload.sender,
     );
+    command
 }
 
-fn handle_fork_payload(command: &mut Command, fork: &ForkPayload) {
+fn get_fork_command(config: &Config, fork: &ForkPayload) -> Command {
+    let mut command = Command::new(&config.fork);
     // TODO: Read configuration at runtime to determine what to do
-    add_repository_env(command, "FORK_FORKEE", &fork.forkee);
-    add_repository_env(command, "FORK_REPOSITORY", &fork.repository);
-    add_user_env(command, "FORK_SENDER", &fork.sender);
+    add_repository_env(&mut command, "FORK_FORKEE", &fork.forkee);
+    add_repository_env(&mut command, "FORK_REPOSITORY", &fork.repository);
+    add_user_env(&mut command, "FORK_SENDER", &fork.sender);
+    command
 }
 
-fn handle_release_payload(command: &mut Command, release: &ReleasePayload) {
+fn get_release_command(config: &Config, release: &ReleasePayload) -> Command {
+    let mut command = Command::new(&config.release);
     // TODO: Read configuration at runtime to determine what to do
     command.env("RELEASE_ACTION", &release.action);
-    add_release_env(command, "RELEASE_RELEASE", &release.release);
-    add_repository_env(command, "RELEASE_REPOSITORY", &release.repository);
-    add_user_env(command, "RELEASE_SENDER", &release.sender);
+    add_release_env(&mut command, "RELEASE_RELEASE", &release.release);
+    add_repository_env(&mut command, "RELEASE_REPOSITORY", &release.repository);
+    add_user_env(&mut command, "RELEASE_SENDER", &release.sender);
+    command
 }
 
 fn add_release_env(command: &mut Command, prefix: &str, release: &Release) {
-    // command.env(, val)
     command.env(&format!("{}_ID", prefix), &release.id.to_string());
     command.env(&format!("{}_TAG_NAME", prefix), &release.tag_name);
     command.env(
@@ -373,34 +406,39 @@ fn add_release_env(command: &mut Command, prefix: &str, release: &Release) {
     // command.env(&format!("{}_ASSETS", prefix), &release.assets);
 }
 
-fn handle_create_payload(command: &mut Command, create: &CreatePayload) {
-    // TODO: Read configuration at runtime to determine what to do
+fn get_create_command(config: &Config, create: &CreatePayload) -> Command {
+    let mut command = Command::new(&config.create);
     command.env("CREATE_SHA", &create.sha);
     command.env("CREATE_REF_PATH", &create.ref_path);
     command.env("CREATE_REF_TYPE", &create.ref_type);
-    add_repository_env(command, "CREATE_REPOSITORY", &create.repository);
-    add_user_env(command, "CREATE_SENDER", &create.sender);
+    add_repository_env(&mut command, "CREATE_REPOSITORY", &create.repository);
+    add_user_env(&mut command, "CREATE_SENDER", &create.sender);
+    command
 }
 
-fn handle_delete_payload(command: &mut Command, delete: &DeletePayload) {
+fn get_delete_command(config: &Config, delete: &DeletePayload) -> Command {
+    let mut command = Command::new(&config.delete);
     // TODO: Read configuration at runtime to determine what to do
     command.env("DELETE_PUSHER_TYPE", &delete.pusher_type);
     command.env("DELETE_REF_PATH", &delete.ref_path);
     command.env("DELETE_REF_TYPE", &delete.ref_type);
-    add_repository_env(command, "DELETE_REPOSITORY", &delete.repository);
-    add_user_env(command, "DELETE_SENDER", &delete.sender);
+    add_repository_env(&mut command, "DELETE_REPOSITORY", &delete.repository);
+    add_user_env(&mut command, "DELETE_SENDER", &delete.sender);
+    command
 }
 
-fn handle_issue_payload(command: &mut Command, issue: &IssuePayload) {
+fn get_issue_command(config: &Config, issue: &IssuePayload) -> Command {
+    let mut command = Command::new(&config.issues);
     // TODO: Read configuration at runtime to determine what to do
     command.env("ISSUE_NUMBER", &issue.number.to_string());
     command.env("ISSUE_ACTION", &issue.action);
     if let Some(changes) = &issue.changes {
-        add_changes_env(command, "ISSUE_CHANGES", &changes);
+        add_changes_env(&mut command, "ISSUE_CHANGES", &changes);
     }
-    add_issue_env(command, "ISSUE_ISSUE", &issue.issue);
-    add_repository_env(command, "ISSUE_REPOSITORY", &issue.repository);
-    add_user_env(command, "ISSUE_SENDER", &issue.sender);
+    add_issue_env(&mut command, "ISSUE_ISSUE", &issue.issue);
+    add_repository_env(&mut command, "ISSUE_REPOSITORY", &issue.repository);
+    add_user_env(&mut command, "ISSUE_SENDER", &issue.sender);
+    command
 }
 
 fn add_issue_env(command: &mut Command, prefix: &str, issue: &Issue) {
@@ -538,41 +576,54 @@ fn add_comment_env(command: &mut Command, prefix: &str, comment: &Comment) {
     add_user_env(command, &format!("{}_USER", prefix), &comment.user);
 }
 
-fn handle_issue_comment_payload(command: &mut Command, issue_comment: &IssueCommentPayload) {
+fn get_issue_comment_command(config: &Config, issue_comment: &IssueCommentPayload) -> Command {
+    let mut command = Command::new(&config.issue_comment);
     // TODO: Read configuration at runtime to determine what to do
     command.env("ISSUE_COMMENT_ACTION", &issue_comment.action.to_string());
-    add_comment_env(command, "ISSUE_COMMENT_COMMENT", &issue_comment.comment);
-    add_issue_env(command, "ISSUE_COMMENT_ISSUE", &issue_comment.issue);
+    add_comment_env(
+        &mut command,
+        "ISSUE_COMMENT_COMMENT",
+        &issue_comment.comment,
+    );
+    add_issue_env(&mut command, "ISSUE_COMMENT_ISSUE", &issue_comment.issue);
 
     if let Some(changes) = &issue_comment.changes {
-        add_changes_env(command, "ISSUE_COMMENT_CHANGES", &changes);
+        add_changes_env(&mut command, "ISSUE_COMMENT_CHANGES", &changes);
     }
 
     command.env("ISSUE_COMMENT_IS_PULL", &issue_comment.is_pull.to_string());
     add_repository_env(
-        command,
+        &mut command,
         "ISSUE_COMMENT_REPOSITORY",
         &issue_comment.repository,
     );
-    add_user_env(command, "ISSUE_COMMENT_SENDER", &issue_comment.sender);
+    add_user_env(&mut command, "ISSUE_COMMENT_SENDER", &issue_comment.sender);
+
+    command
 }
 
-fn handle_pull_request_payload(command: &mut Command, pull_request: &PullRequestPayload) {
+fn get_pull_request_command(config: &Config, pull_request: &PullRequestPayload) -> Command {
+    let mut command = Command::new(&config.pull_request);
     // TODO: Read configuration at runtime to determine what to do
     command.env("PULL_REQUEST_ACTION", &pull_request.action);
     command.env("PULL_REQUEST_NUMBER", &pull_request.number.to_string());
     add_pull_request_env(
-        command,
+        &mut command,
         "PULL_REQUEST_PULL_REQUEST",
         &pull_request.pull_request,
     );
 
     if let Some(changes) = &pull_request.changes {
-        add_changes_env(command, "PULL_REQUEST_CHANGES", &changes);
+        add_changes_env(&mut command, "PULL_REQUEST_CHANGES", &changes);
     }
 
-    add_repository_env(command, "PULL_REQUEST_REPOSITORY", &pull_request.repository);
-    add_user_env(command, "PULL_REQUEST_SENDER", &pull_request.sender);
+    add_repository_env(
+        &mut command,
+        "PULL_REQUEST_REPOSITORY",
+        &pull_request.repository,
+    );
+    add_user_env(&mut command, "PULL_REQUEST_SENDER", &pull_request.sender);
+    command
 }
 
 fn add_pull_request_env(command: &mut Command, prefix: &str, pull_request: &PullRequest) {

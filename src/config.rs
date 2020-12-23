@@ -7,6 +7,7 @@ use std::net::SocketAddr;
 pub(crate) struct ServerConfig {
     pub addr: SocketAddr,
     pub allowed_hosts: Vec<String>,
+    pub config_path: String,
 }
 
 impl<'a> From<ArgMatches<'a>> for ServerConfig {
@@ -26,9 +27,15 @@ impl<'a> From<ArgMatches<'a>> for ServerConfig {
         info!("{:?}", allowed_hosts);
         let allowed_hosts = serde_json::from_str(allowed_hosts).expect("not a JSON array of hosts");
 
+        let config_path = arg_matches
+            .value_of(name_of!(config_path in ServerConfig))
+            .expect("path of cli command config must be specified")
+            .to_owned();
+
         ServerConfig {
             addr,
             allowed_hosts,
+            config_path,
         }
     }
 }
