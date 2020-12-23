@@ -25,6 +25,8 @@ dependencies = [
  "log",
  "luffy_core",
  "luffy_gitea",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
