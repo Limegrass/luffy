@@ -46,8 +46,10 @@ pub(crate) fn add_issue_env(command: &mut Command, prefix: &str, issue: &Issue) 
         add_user_env(command, &format!("{}_ASSIGNEE", prefix), assignee);
     }
 
-    for (i, assignee) in issue.assignees.iter().enumerate() {
-        add_user_env(command, &format!("{}_ASSIGNEE_{}", prefix, i), assignee);
+    if let Some(assignees) = &issue.assignees {
+        for (i, assignee) in assignees.iter().enumerate() {
+            add_user_env(command, &format!("{}_ASSIGNEE_{}", prefix, i), assignee);
+        }
     }
 
     command.env(&format!("{}_STATE", prefix), &issue.state);
@@ -135,9 +137,12 @@ pub(crate) fn add_pull_request_env(
         add_user_env(command, &format!("{}_ASSIGNEE", prefix), assignee);
     }
 
-    for (i, assignee) in pull_request.assignees.iter().enumerate() {
-        add_user_env(command, &format!("{}_ASSIGNEE_{}", prefix, i), assignee);
+    if let Some(assignees) = &pull_request.assignees {
+        for (i, assignee) in assignees.iter().enumerate() {
+            add_user_env(command, &format!("{}_ASSIGNEE_{}", prefix, i), assignee);
+        }
     }
+
     command.env(&format!("{}_STATE", prefix), &pull_request.state);
     command.env(
         &format!("{}_IS_LOCKED", prefix),
@@ -242,7 +247,7 @@ pub(crate) fn add_comment_env(command: &mut Command, prefix: &str, comment: &Com
         &format!("{}_ORIGINAL_AUTHOR_ID", prefix),
         &comment.original_author_id.to_string(),
     );
-    command.env(&format!("{}_COMMENT_TEXT", prefix), &comment.comment_text);
+    command.env(&format!("{}_BODY", prefix), &comment.body);
     command.env(&format!("{}_CREATED_AT", prefix), &comment.created_at);
     command.env(&format!("{}_UPDATED_AT", prefix), &comment.updated_at);
 

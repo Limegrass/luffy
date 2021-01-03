@@ -164,7 +164,7 @@ pub struct Issue {
     pub labels: Vec<String>,
     pub milestone: Option<Milestone>,
     pub assignee: Option<GiteaUser>,
-    pub assignees: Vec<GiteaUser>,
+    pub assignees: Option<Vec<GiteaUser>>,
     pub state: String, // "open", "closed", "all"
     pub is_locked: bool,
     #[serde(rename = "comments")]
@@ -270,7 +270,7 @@ pub struct PullRequest {
     // TODO: labels: Vec<Label>
     pub milestone: Option<Milestone>,
     pub assignee: Option<GiteaUser>,
-    pub assignees: Vec<GiteaUser>,
+    pub assignees: Option<Vec<GiteaUser>>,
     pub state: String, // StateType
     pub is_locked: bool,
     #[serde(rename = "comments")]
