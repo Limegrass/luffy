@@ -1,7 +1,8 @@
 # Luffy
 it hook pirate hook it luffy
 
-## :poop: Code ### Service
+## Code
+### Service
 Service defines a Git repository service provider.
 Each has their own header for signifying the type of the event,
 as well as their own types of event, although they can often be similar.
