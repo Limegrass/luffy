@@ -33,9 +33,21 @@ pub struct Commit {
     pub id: String, // uuid
     pub message: String,
     pub url: String, // url with scheme
+    // Might be Option<GitUser>?
     pub author: GitUser,
     pub committer: GitUser,
     pub timestamp: DateTimeType,
+    pub verification: Option<CommitVerification>,
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct CommitVerification {
+    #[serde(rename = "verified")]
+    pub is_verified: bool,
+    pub reason: String,
+    pub signature: String,
+    pub signer: Option<GitUser>,
+    pub payload: String,
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
@@ -139,6 +151,7 @@ pub struct ExternalWiki {
     pub url: String,
 }
 
+// ???
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct Permissions {
     #[serde(rename = "admin")]
@@ -204,8 +217,7 @@ pub struct Comment {
     pub user: GiteaUser,
     pub original_author: String,
     pub original_author_id: i64,
-    #[serde(rename = "body")]
-    pub comment_text: String,
+    pub body: String,
     pub created_at: DateTimeType,
     pub updated_at: DateTimeType,
 }
