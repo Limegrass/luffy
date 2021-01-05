@@ -3,17 +3,14 @@ use crate::structs::*;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
-// TODO: Deserves proper Error enum later.
-pub type JsonParseError = String;
-
 // TODO: Change to a proper derive macro
 // https://doc.rust-lang.org/book/ch19-06-macros.html#how-to-write-a-custom-derive-macro
 macro_rules! impl_serde_deserialize {
     ($type: ty) => {
         impl TryFrom<&str> for $type {
-            type Error = JsonParseError;
+            type Error = serde_json::Error;
             fn try_from(s: &str) -> Result<Self, Self::Error> {
-                serde_json::from_str(s).map_err(|e| format!("{:?}", e))
+                serde_json::from_str(s)
             }
         }
     };

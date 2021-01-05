@@ -6,9 +6,7 @@ use luffy_core::Service;
 use payloads::*;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
-
-// TODO: Deserves proper Error enum later.
-pub type JsonParseError = String;
+use thiserror::Error;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum HookEvent {
@@ -24,7 +22,25 @@ pub enum HookEvent {
 }
 
 pub struct GiteaService;
-impl Service<HookEvent, String> for GiteaService {
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error(
+        "error while deserializing {0}, you may need to report a bug to github.com/limegrass/luffy"
+    )]
+    PayloadBody(serde_json::Error),
+    #[error(
+        "unrecognized event type {0}, you may need to report a bug to github.com/limegrass/luffy"
+    )]
+    EventType(String),
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(error: serde_json::Error) -> Self {
+        Error::PayloadBody(error)
+    }
+}
+
+impl Service<HookEvent, Error> for GiteaService {
     fn event_header_name(&self) -> &'static str {
         "X-Gitea-Event"
     }
@@ -33,7 +49,7 @@ impl Service<HookEvent, String> for GiteaService {
         &self,
         hook_event_type: &str,
         hook_event_body: &str,
-    ) -> Result<HookEvent, JsonParseError> {
+    ) -> Result<HookEvent, Error> {
         match hook_event_type {
             "create" => Ok(HookEvent::Create(hook_event_body.try_into()?)),
             "delete" => Ok(HookEvent::Delete(hook_event_body.try_into()?)),
@@ -44,7 +60,7 @@ impl Service<HookEvent, String> for GiteaService {
             "pull_request" => Ok(HookEvent::PullRequest(hook_event_body.try_into()?)),
             "repository" => Ok(HookEvent::Repository(hook_event_body.try_into()?)),
             "release" => Ok(HookEvent::Release(hook_event_body.try_into()?)),
-            _ => Err(String::from("unrecognized git event")),
+            _ => Err(Error::EventType(String::from(hook_event_type))),
         }
     }
 }
