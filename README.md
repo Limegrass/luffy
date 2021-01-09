@@ -26,3 +26,8 @@ It accepts an address and port to bind to,
 as well hostnames which are allowed to hit the endpoint.
 This will likely move into some `examples` folder in the future,
 and an implementation using the Rust AWS Lambda runtime would be nice over using `warp`.
+
+### Container
+The Dockerfile essentially a placeholder at the moment with how garbage it is.
+You will need to build and target musl for the time being for the executable to
+be available to the docker build.

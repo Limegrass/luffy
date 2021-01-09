@@ -53,8 +53,8 @@ async fn main() {
     info!("{:?}", config);
 
     let warp_hosts = config.allowed_hosts.iter().fold(
-        // always allow the loopback to connect.
-        warp::host::exact(&format!("127.0.0.1:{}", config.addr.port())).boxed(),
+        // always allow the binding address
+        warp::host::exact(&format!("{}:{}", config.addr.ip(), config.addr.port())).boxed(),
         |allowed_hosts, hostname| {
             allowed_hosts
                 .or(warp::host::exact(hostname))

@@ -1,0 +1,13 @@
+version: "3.5"
+services:
+  luffy:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.alpine
+    command: -c /config.json -a 0.0.0.0:9669 -h '["0.0.0.0:9669", "luffy:9669"]'
+    ports:
+      - 9669:9669
+    environment:
+      - RUST_LOG=info
+    volumes:
+      - "${CONFIG_PATH}:/config.json"

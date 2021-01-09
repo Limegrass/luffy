@@ -1,0 +1,9 @@
+FROM alpine:latest
+
+EXPOSE 9669
+
+COPY ./target/x86_64-unknown-linux-musl/release/luffy /bin
+
+ENTRYPOINT [ "/bin/luffy" ]
+
+CMD ["-a", "0.0.0.0:9669", "-c", "/config.json"]
