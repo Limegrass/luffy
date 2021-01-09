@@ -1,11 +1,9 @@
 use crate::struct_helpers::*;
-use crate::Config;
 use luffy_gitea::payloads::*;
 use std::process::Command;
 
-pub(crate) fn get_push_command(config: &Config, push_event: &PushPayload) -> Command {
-    let mut command = Command::new(&config.push);
-    // TODO: Read configuration at runtime to determine what to do
+pub(crate) fn get_push_command(command_name: &str, push_event: &PushPayload) -> Command {
+    let mut command = Command::new(command_name);
     command.env("REF_PATH", &push_event.ref_path);
     command.env("BEFORE", &push_event.before);
     command.env("AFTER", &push_event.after);
@@ -22,11 +20,9 @@ pub(crate) fn get_push_command(config: &Config, push_event: &PushPayload) -> Com
     command
 }
 
-pub(crate) fn get_repo_command(config: &Config, repo_payload: &RepositoryPayload) -> Command {
-    let mut command = Command::new(&config.repository);
-    // TODO: Read configuration at runtime to determine what to do
+pub(crate) fn get_repo_command(command_name: &str, repo_payload: &RepositoryPayload) -> Command {
+    let mut command = Command::new(command_name);
     command.env("ACTION", &repo_payload.action);
-    // can be CREATE_X or DELETE_X
     add_repository_env(
         &mut command,
         // TODO: Just use REPOSITORY_X ?
@@ -46,18 +42,16 @@ pub(crate) fn get_repo_command(config: &Config, repo_payload: &RepositoryPayload
     command
 }
 
-pub(crate) fn get_fork_command(config: &Config, fork: &ForkPayload) -> Command {
-    let mut command = Command::new(&config.fork);
-    // TODO: Read configuration at runtime to determine what to do
+pub(crate) fn get_fork_command(command_name: &str, fork: &ForkPayload) -> Command {
+    let mut command = Command::new(command_name);
     add_repository_env(&mut command, "FORKEE", &fork.forkee);
     add_repository_env(&mut command, "REPOSITORY", &fork.repository);
     add_user_env(&mut command, "SENDER", &fork.sender);
     command
 }
 
-pub(crate) fn get_release_command(config: &Config, release: &ReleasePayload) -> Command {
-    let mut command = Command::new(&config.release);
-    // TODO: Read configuration at runtime to determine what to do
+pub(crate) fn get_release_command(command_name: &str, release: &ReleasePayload) -> Command {
+    let mut command = Command::new(command_name);
     command.env("ACTION", &release.action);
     add_release_env(&mut command, "RELEASE", &release.release);
     add_repository_env(&mut command, "REPOSITORY", &release.repository);
@@ -65,8 +59,8 @@ pub(crate) fn get_release_command(config: &Config, release: &ReleasePayload) -> 
     command
 }
 
-pub(crate) fn get_create_command(config: &Config, create: &CreatePayload) -> Command {
-    let mut command = Command::new(&config.create);
+pub(crate) fn get_create_command(command_name: &str, create: &CreatePayload) -> Command {
+    let mut command = Command::new(command_name);
     command.env("SHA", &create.sha);
     command.env("REF_PATH", &create.ref_path);
     command.env("REF_TYPE", &create.ref_type);
@@ -75,9 +69,8 @@ pub(crate) fn get_create_command(config: &Config, create: &CreatePayload) -> Com
     command
 }
 
-pub(crate) fn get_delete_command(config: &Config, delete: &DeletePayload) -> Command {
-    let mut command = Command::new(&config.delete);
-    // TODO: Read configuration at runtime to determine what to do
+pub(crate) fn get_delete_command(command_name: &str, delete: &DeletePayload) -> Command {
+    let mut command = Command::new(command_name);
     command.env("PUSHER_TYPE", &delete.pusher_type);
     command.env("REF_PATH", &delete.ref_path);
     command.env("REF_TYPE", &delete.ref_type);
@@ -86,9 +79,8 @@ pub(crate) fn get_delete_command(config: &Config, delete: &DeletePayload) -> Com
     command
 }
 
-pub(crate) fn get_issue_command(config: &Config, issue: &IssuePayload) -> Command {
-    let mut command = Command::new(&config.issues);
-    // TODO: Read configuration at runtime to determine what to do
+pub(crate) fn get_issue_command(command_name: &str, issue: &IssuePayload) -> Command {
+    let mut command = Command::new(command_name);
     command.env("NUMBER", &issue.number.to_string());
     command.env("ACTION", &issue.action);
     if let Some(changes) = &issue.changes {
@@ -101,11 +93,10 @@ pub(crate) fn get_issue_command(config: &Config, issue: &IssuePayload) -> Comman
 }
 
 pub(crate) fn get_issue_comment_command(
-    config: &Config,
+    command_name: &str,
     issue_comment: &IssueCommentPayload,
 ) -> Command {
-    let mut command = Command::new(&config.issue_comment);
-    // TODO: Read configuration at runtime to determine what to do
+    let mut command = Command::new(command_name);
     command.env("ACTION", &issue_comment.action.to_string());
     add_comment_env(&mut command, "COMMENT", &issue_comment.comment);
     add_issue_env(&mut command, "ISSUE", &issue_comment.issue);
@@ -122,11 +113,10 @@ pub(crate) fn get_issue_comment_command(
 }
 
 pub(crate) fn get_pull_request_command(
-    config: &Config,
+    command_name: &str,
     pull_request: &PullRequestPayload,
 ) -> Command {
-    let mut command = Command::new(&config.pull_request);
-    // TODO: Read configuration at runtime to determine what to do
+    let mut command = Command::new(command_name);
     command.env("ACTION", &pull_request.action);
     command.env("NUMBER", &pull_request.number.to_string());
     add_pull_request_env(&mut command, "PULL_REQUEST", &pull_request.pull_request);

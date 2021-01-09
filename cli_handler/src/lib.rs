@@ -46,15 +46,19 @@ impl Handler<HookEvent> for GiteaCliHandler {
         let config: Config = serde_json::from_str(&config_string).expect("but really though");
 
         let mut command = match event {
-            HookEvent::Create(payload) => get_create_command(&config, payload),
-            HookEvent::Delete(payload) => get_delete_command(&config, payload),
-            HookEvent::Fork(payload) => get_fork_command(&config, payload),
-            HookEvent::Issues(payload) => get_issue_command(&config, payload),
-            HookEvent::IssueComment(payload) => get_issue_comment_command(&config, payload),
-            HookEvent::PullRequest(payload) => get_pull_request_command(&config, payload),
-            HookEvent::Push(payload) => get_push_command(&config, payload),
-            HookEvent::Repository(payload) => get_repo_command(&config, payload),
-            HookEvent::Release(payload) => get_release_command(&config, payload),
+            HookEvent::Create(payload) => get_create_command(&config.create, payload),
+            HookEvent::Delete(payload) => get_delete_command(&config.delete, payload),
+            HookEvent::Fork(payload) => get_fork_command(&config.fork, payload),
+            HookEvent::Issues(payload) => get_issue_command(&config.issues, payload),
+            HookEvent::IssueComment(payload) => {
+                get_issue_comment_command(&config.issue_comment, payload)
+            }
+            HookEvent::PullRequest(payload) => {
+                get_pull_request_command(&config.pull_request, payload)
+            }
+            HookEvent::Push(payload) => get_push_command(&config.push, payload),
+            HookEvent::Repository(payload) => get_repo_command(&config.repository, payload),
+            HookEvent::Release(payload) => get_release_command(&config.release, payload),
         };
         info!("{:#?}", command.output());
     }
