@@ -13,3 +13,4 @@ luffy_core = { version = "0.1.0", path = "../luffy_core" }
 luffy_gitea = { version = "0.1.0", path = "../luffy_gitea" }
 async-trait = "0.1.42"
 log = "0.4.11"
+thiserror = "1.0.23"

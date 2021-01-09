@@ -3,11 +3,11 @@ mod struct_helpers;
 
 use async_trait::async_trait;
 use hook_handlers::*;
-use log::*;
 use luffy_core::Handler;
 use luffy_gitea::HookEvent;
 use serde::de::IntoDeserializer;
 use serde::Deserialize;
+use thiserror::Error;
 
 // https://github.com/serde-rs/serde/issues/1425, modified for blank
 fn blank_string_as_none<'de, D, T>(de: D) -> Result<Option<T>, D::Error>
@@ -38,6 +38,20 @@ impl GiteaCliHandler {
     }
 }
 
+// TODO: Update to tokio Command
+pub enum HookHandlerResult {
+    ExecutionResult(std::io::Result<std::process::Output>),
+    NoOp,
+}
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("file not readable: {0:#?}")]
+    ConfigFilePathError(std::io::Error),
+    #[error("invalid json in configuration file: {0:#?}")]
+    ConfigurationJsonError(serde_json::Error),
+}
+
 #[derive(Deserialize)]
 pub struct Config {
     #[serde(default, deserialize_with = "blank_string_as_none")]
@@ -63,20 +77,33 @@ pub struct Config {
 // TODO: Make the custom derive, if it's possible
 // (but it's fucking impossible)
 #[async_trait]
-impl Handler<HookEvent> for GiteaCliHandler {
-    async fn handle_event(&self, event: &HookEvent) {
-        let config_string = std::fs::read_to_string(&self.config_path).expect("TODO: return Err");
-        let config: Config = serde_json::from_str(&config_string).expect("but really though");
+impl Handler<HookEvent, Result<HookHandlerResult, Error>> for GiteaCliHandler {
+    async fn handle_event(&self, event: &HookEvent) -> Result<HookHandlerResult, Error> {
+        let config_string = std::fs::read_to_string(&self.config_path)?;
+        let config: Config = serde_json::from_str(&config_string)?;
 
-        let command = get_command_string(&config, event);
-        if let Some(mut command) = command {
-            info!("{:#?}", command.output());
+        let command = get_command(&config, event);
+
+        match command {
+            Some(mut command) => Ok(HookHandlerResult::ExecutionResult(command.output())),
+            None => Ok(HookHandlerResult::NoOp),
         }
     }
 }
 
-// No op if empty/defaulted
-fn get_command_string(config: &Config, event: &HookEvent) -> Option<std::process::Command> {
+impl From<std::io::Error> for Error {
+    fn from(result: std::io::Error) -> Self {
+        Error::ConfigFilePathError(result)
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(error: serde_json::Error) -> Self {
+        Error::ConfigurationJsonError(error)
+    }
+}
+
+fn get_command(config: &Config, event: &HookEvent) -> Option<std::process::Command> {
     match event {
         HookEvent::Create(payload) => Some(get_create_command(&config.create.as_ref()?, payload)),
         HookEvent::Delete(payload) => Some(get_delete_command(&config.delete.as_ref()?, payload)),

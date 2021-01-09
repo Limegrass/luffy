@@ -1,7 +1,7 @@
 mod config;
 
 use clap::{App, Arg};
-use cli_handler::GiteaCliHandler;
+use cli_handler::{GiteaCliHandler, HookHandlerResult};
 use config::ServerConfig;
 use log::*;
 use luffy_core::{Handler, Service};
@@ -91,9 +91,20 @@ async fn main() {
                         return Err::<warp::reply::Json, warp::Rejection>(Error::from(error).into())
                     }
                 };
-                process_handler.handle_event(&event).await;
-                let result = warp::reply::json(&event);
-                Ok::<warp::reply::Json, warp::Rejection>(result)
+                match process_handler.handle_event(&event).await {
+                    Ok(result) => match result {
+                        HookHandlerResult::ExecutionResult(io_result) => {
+                            // TODO: Map this in the Handler error instead
+                            let command_result = io_result.map_err(|err| Error::from(err))?;
+                            Ok(warp::reply::json(&format!(
+                                "status: {:?}, stdout: {:?}, stderr: {:?}",
+                                command_result.status, command_result.stdout, command_result.stderr,
+                            )))
+                        }
+                        HookHandlerResult::NoOp => Ok(warp::reply::json(&"No op")),
+                    },
+                    Err(error) => Err(Error::from(error).into()),
+                }
             }
         });
     warp::serve(hook).run(config.addr).await;
@@ -103,6 +114,20 @@ async fn main() {
 enum Error {
     Deserialization(luffy_gitea::Error),
     PayloadBody(FromUtf8Error),
+    ExecutionError(String),
+    ConfigError(cli_handler::Error),
+}
+
+impl From<cli_handler::Error> for Error {
+    fn from(error: cli_handler::Error) -> Error {
+        Error::ConfigError(error)
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(error: std::io::Error) -> Error {
+        Error::ExecutionError(error.to_string())
+    }
 }
 
 impl From<FromUtf8Error> for Error {
@@ -110,8 +135,6 @@ impl From<FromUtf8Error> for Error {
         Error::PayloadBody(error)
     }
 }
-
-impl warp::reject::Reject for Error {}
 
 impl From<luffy_gitea::Error> for Error {
     fn from(error: luffy_gitea::Error) -> Error {
@@ -124,3 +147,5 @@ impl From<Error> for warp::Rejection {
         warp::reject::custom(rejection)
     }
 }
+
+impl warp::reject::Reject for Error {}

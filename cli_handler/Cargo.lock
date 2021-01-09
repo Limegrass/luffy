@@ -27,6 +27,7 @@ dependencies = [
  "luffy_gitea",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]

@@ -8,6 +8,6 @@ pub trait Service<T, E> {
 
 /// A Handler for Git WebHook Events
 #[async_trait]
-pub trait Handler<T> {
-    async fn handle_event(&self, event: &T);
+pub trait Handler<T, R> {
+    async fn handle_event(&self, event: &T) -> R;
 }
