@@ -7,6 +7,7 @@ use log::*;
 use luffy_core::{Handler, Service};
 use luffy_gitea::GiteaService;
 use nameof::name_of;
+use std::{string::FromUtf8Error, sync::Arc};
 use warp::{hyper::body::Bytes, Buf, Filter};
 
 #[tokio::main]
@@ -62,7 +63,7 @@ async fn main() {
         },
     );
 
-    let gitea = GiteaService;
+    let gitea = Arc::from(GiteaService);
     let event_header_name = gitea.event_header_name();
     let event_filter = warp::header(event_header_name);
 
@@ -73,21 +74,53 @@ async fn main() {
         .and(event_filter)
         .and(warp::body::bytes())
         .and_then(move |hook_event_name: String, hook_event_body: Bytes| {
-            let body =
-                String::from_utf8(hook_event_body.bytes().iter().map(|b| b.clone()).collect())
-                    .expect("fuck it i'll fix it later"); // TODO: return a Reject
-            let gitea = GiteaService;
-            let event = gitea
-                .parse_hook_event(&hook_event_name, &body)
-                .expect("fuck it i'll fix it later"); // TODO: return a Reject
-                                                      // TODO: handle_event return Result<()>
             let process_handler = GiteaCliHandler::new(&config_path);
+            let gitea = Arc::clone(&gitea);
             async move {
+                let body = match String::from_utf8(
+                    hook_event_body.bytes().iter().map(|b| b.clone()).collect(),
+                ) {
+                    Ok(body) => body,
+                    Err(error) => {
+                        return Err::<warp::reply::Json, warp::Rejection>(Error::from(error).into())
+                    }
+                };
+                let event = match gitea.parse_hook_event(&hook_event_name, &body) {
+                    Ok(event) => event,
+                    Err(error) => {
+                        return Err::<warp::reply::Json, warp::Rejection>(Error::from(error).into())
+                    }
+                };
                 process_handler.handle_event(&event).await;
-                let result: warp::reply::Json = warp::reply::json(&event);
-                // TODO: Err
-                Ok::<warp::reply::Json, std::convert::Infallible>(result)
+                let result = warp::reply::json(&event);
+                Ok::<warp::reply::Json, warp::Rejection>(result)
             }
         });
     warp::serve(hook).run(config.addr).await;
+}
+
+#[derive(Debug)]
+enum Error {
+    Deserialization(luffy_gitea::Error),
+    PayloadBody(FromUtf8Error),
+}
+
+impl From<FromUtf8Error> for Error {
+    fn from(error: FromUtf8Error) -> Error {
+        Error::PayloadBody(error)
+    }
+}
+
+impl warp::reject::Reject for Error {}
+
+impl From<luffy_gitea::Error> for Error {
+    fn from(error: luffy_gitea::Error) -> Error {
+        Error::Deserialization(error)
+    }
+}
+
+impl From<Error> for warp::Rejection {
+    fn from(rejection: Error) -> Self {
+        warp::reject::custom(rejection)
+    }
 }
