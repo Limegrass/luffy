@@ -7,7 +7,6 @@ use log::*;
 use luffy_core::Handler;
 use luffy_gitea::HookEvent;
 use serde::Deserialize;
-use std::fs::read_to_string;
 
 // TODO: allow yaml, toml
 // TODO: allow inlined commands in cfg
@@ -25,14 +24,23 @@ impl GiteaCliHandler {
 
 #[derive(Deserialize)]
 pub struct Config {
+    #[serde(default)]
     create: String,
+    #[serde(default)]
     delete: String,
+    #[serde(default)]
     fork: String,
+    #[serde(default)]
     issues: String,
+    #[serde(default)]
     issue_comment: String,
+    #[serde(default)]
     push: String,
+    #[serde(default)]
     pull_request: String,
+    #[serde(default)]
     repository: String,
+    #[serde(default)]
     release: String,
 }
 
@@ -42,7 +50,7 @@ pub struct Config {
 impl Handler<HookEvent> for GiteaCliHandler {
     async fn handle_event(&self, event: &HookEvent) {
         // TODO: Maybe get rid of the event type prefixing in the "handle"
-        let config_string = read_to_string(&self.config_path).expect("TODO: return Err");
+        let config_string = std::fs::read_to_string(&self.config_path).expect("TODO: return Err");
         let config: Config = serde_json::from_str(&config_string).expect("but really though");
 
         let mut command = match event {
@@ -61,5 +69,25 @@ impl Handler<HookEvent> for GiteaCliHandler {
             HookEvent::Release(payload) => get_release_command(&config.release, payload),
         };
         info!("{:#?}", command.output());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn defaults_empty_string() {
+        let config_string = "{}";
+        let config: Config = serde_json::from_str(config_string).expect("Serde config error");
+        assert_eq!("", &config.create);
+        assert_eq!("", &config.delete);
+        assert_eq!("", &config.fork);
+        assert_eq!("", &config.issues);
+        assert_eq!("", &config.issue_comment);
+        assert_eq!("", &config.pull_request);
+        assert_eq!("", &config.push);
+        assert_eq!("", &config.repository);
+        assert_eq!("", &config.release);
     }
 }
