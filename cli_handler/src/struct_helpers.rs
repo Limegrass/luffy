@@ -202,10 +202,9 @@ pub(crate) fn add_pull_request_meta_env(
         &format!("{}_IS_MERGED", prefix),
         &pull_request_meta.is_merged.to_string(),
     );
-    command.env(
-        &format!("{}_TIME_MERGED", prefix),
-        &pull_request_meta.time_merged.to_string(),
-    );
+    if let Some(time_merged) = &pull_request_meta.time_merged {
+        command.env(&format!("{}_TIME_MERGED", prefix), &time_merged);
+    }
 }
 
 pub(crate) fn add_repository_meta_env(

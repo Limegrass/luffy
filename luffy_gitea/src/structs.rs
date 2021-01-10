@@ -197,7 +197,7 @@ pub struct PullRequestMeta {
     #[serde(rename = "merged")]
     pub is_merged: bool,
     #[serde(rename = "merged_at")]
-    pub time_merged: String,
+    pub time_merged: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
