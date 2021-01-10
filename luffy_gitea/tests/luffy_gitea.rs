@@ -33,5 +33,5 @@ fn deserialize_issues_payload() {
     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     d.push("tests/resources/gitea/issues_payload.json");
     let data = fs::read_to_string(d).expect("Unable to read file");
-    serde_json::from_str::<IssueCommentPayload>(&data).expect("Deserialization error");
+    serde_json::from_str::<IssuePayload>(&data).expect("Deserialization error");
 }
