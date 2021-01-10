@@ -96,9 +96,24 @@ async fn main() {
                         HookHandlerResult::ExecutionResult(io_result) => {
                             // TODO: Map this in the Handler error instead
                             let command_result = io_result.map_err(|err| Error::from(err))?;
+                            let stdout = match String::from_utf8(command_result.stdout.clone()) {
+                                Ok(stdout) => stdout,
+                                Err(conversion_error) => format!(
+                                    "conversion error [{:?}], could not convert array {:?}",
+                                    conversion_error, &command_result.stdout
+                                ),
+                            };
+                            let stderr = match String::from_utf8(command_result.stderr.clone()) {
+                                Ok(stderr) => stderr,
+                                Err(conversion_error) => format!(
+                                    "conversion error [{:?}], could not convert array {:?}",
+                                    conversion_error, &command_result.stderr
+                                ),
+                            };
+
                             Ok(warp::reply::json(&format!(
-                                "status: {:?}, stdout: {:?}, stderr: {:?}",
-                                command_result.status, command_result.stdout, command_result.stderr,
+                                "status: {:?}, stdout: {}, stderr: {}",
+                                command_result.status, stdout, stderr
                             )))
                         }
                         HookHandlerResult::NoOp => Ok(warp::reply::json(&"No op")),
